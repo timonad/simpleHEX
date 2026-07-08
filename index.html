@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>simpleHEX</title>
+  <style>
+  *{ box-sizing:border-box; }
+  body{
+    font-family: Arial, sans-serif;
+    background:#f5f5f5;
+    margin:0;
+    padding:60px 20px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .header{ text-align:center; margin-bottom:40px; }
+  .header h1{ font-size:42px; margin:0; color:#222; letter-spacing:-1px; }
+  .header h1 .accent{ color:#e67e22; }
+  .header p{ margin:6px 0 0; font-size:15px; color:#888; }
+
+  .conv-wrap, .history-row{
+    display:flex;
+    gap:20px;
+    width:100%;
+    max-width:1100px;
+  }
+  .conv-wrap{ flex-wrap:wrap; }
+
+  .conv-field{
+    flex:1;
+    min-width:200px;
+    display:flex;
+    flex-direction:column;
+  }
+  .conv-field label{
+    font-size:14px; color:#666; margin-bottom:6px; font-weight:bold;
+  }
+  .conv-field input{
+    padding:14px; font-size:18px; border:1px solid #ddd; border-radius:8px; width:100%;
+  }
+  .conv-field input:focus{ outline:none; border-color:#e67e22; }
+  .conv-field input.error{ border-color:#e74c3c; background:#fdecea; }
+  .conv-custom{ display:flex; gap:8px; }
+  .conv-custom #base{ max-width:80px; }
+
+  /* ===== HISTORY header + clear button ===== */
+  .history{ width:100%; max-width:1100px; margin-top:36px; }
+  .history-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:10px;
+    padding-left:2px;
+  }
+  .history-title{
+    font-size:13px; color:#aaa; text-transform:uppercase;
+    letter-spacing:1px; margin:0;
+  }
+
+  .clear-btn{
+    font-family:Arial, sans-serif;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    color:#e67e22;
+    background:transparent;
+    border:1px solid #f0c088;
+    border-radius:6px;
+    padding:5px 12px;
+    cursor:pointer;
+    transition:opacity .3s ease, transform .3s ease, background .2s ease, color .2s ease;
+
+    /* по умолчанию скрыта (нет записей) */
+    opacity:0;
+    transform:translateY(-4px) scale(.96);
+    pointer-events:none;
+  }
+
+  .clear-btn.visible{
+    opacity:1;
+    transform:translateY(0) scale(1);
+    pointer-events:auto;
+  }
+  .clear-btn:hover{ background:#e67e22; color:#fff; }
+  .clear-btn:active{ transform:scale(.94); }
+
+  /* ===== Collapsible / scrollable history ===== */
+  .history-scroll{
+    overflow-y:auto;
+    border-radius:8px;
+    /* max-height задаётся из JS через CSS-переменную */
+    max-height:var(--history-max, 80vh);
+    position:relative;   /* якорь для кнопки "наверх" */
+  }
+  /* чуть заметный скроллбар */
+  .history-scroll::-webkit-scrollbar{ width:8px; }
+  .history-scroll::-webkit-scrollbar-thumb{
+    background:#ddd; border-radius:4px;
+  }
+  .history-scroll::-webkit-scrollbar-thumb:hover{ background:#ccc; }
+
+  .scroll-top-btn{
+    position:sticky;
+    top:8px;
+    /* прижимаем к правому краю области прокрутки */
+    float:right;
+    margin-right:8px;
+    z-index:5;
+
+    font-family:Arial, sans-serif;
+    font-size:12px;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+
+    color:#fff;
+    background:rgba(230,126,34,0.65);   /* полупрозрачный оранжевый */
+    border:1px solid rgba(230,126,34,0.4);
+    border-radius:20px;
+    padding:6px 14px;
+    cursor:pointer;
+    backdrop-filter:blur(3px);          /* мягкое размытие фона под кнопкой */
+
+    transition:opacity .3s ease, transform .3s ease, background .2s ease;
+
+    /* скрыта у верха */
+    opacity:0;
+    transform:translateY(-6px);
+    pointer-events:none;
+  }
+  .scroll-top-btn.visible{
+    opacity:1;
+    transform:translateY(0);
+    pointer-events:auto;
+  }
+  .scroll-top-btn:hover{ background:rgba(230,126,34,0.9); }
+  .scroll-top-btn:active{ transform:scale(.95); }
+
+  .history-list{
+    display:flex; flex-direction:column; gap:8px;
+    padding-right:2px; /* чтобы контент не прилипал к скроллбару */
+  }
+
+  .history-row{
+    opacity:0;
+    transform:translateY(-8px);
+    animation:fadeInDown .4s ease forwards;
+  }
+  @keyframes fadeInDown{ to{ opacity:1; transform:translateY(0); } }
+
+  .history-cell{
+    flex:1;
+    min-width:200px;
+    background:#fbfbfb;
+    border:1px solid #eee;
+    border-radius:8px;
+    padding:8px 12px;
+    font-family:monospace;
+    font-size:13px;
+    color:#666;
+    word-break:break-all;
+    overflow-wrap:anywhere;
+  }
+  .history-cell .cell-label{
+    display:block;
+    font-family:Arial, sans-serif;
+    font-size:11px;
+    color:#bbb;
+    margin-bottom:2px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+  }
+  .history-cell .cell-val{ color:#444; }
+
+  .history-cell.source{
+    border-color:#f0c088;
+    background:#fff8f0;
+  }
+  .history-cell.source .cell-label{ color:#e67e22; }
+  .history-cell.source .cell-val{ color:#c25e0a; }
+
+  .history-empty{ font-size:13px; color:#ccc; font-style:italic; }
+
+  /* ===================================================== */
+  /* ===== МОБИЛЬНАЯ ВЕРСИЯ (узкие экраны) ================ */
+  /* ===================================================== */
+  @media (max-width: 640px){
+    body{ padding:36px 14px; }
+
+    .header{ margin-bottom:28px; }
+    .header h1{ font-size:34px; }
+
+    /* Поля ввода — строго по вертикали */
+    .conv-wrap{
+      flex-direction:column;
+      gap:14px;
+    }
+    .conv-field{ min-width:0; }        /* убираем ограничение, чтобы не ломало колонку */
+
+    /* История — каждая запись становится вертикальной карточкой */
+    .history{ margin-top:26px; }
+
+    .history-row{
+      flex-direction:column;           /* колонки в столбик */
+      gap:0;
+      /* объединяем ячейки в единую карточку */
+      border:1px solid #eee;
+      border-radius:8px;
+      overflow:hidden;
+      background:#fbfbfb;
+    }
+
+    .history-cell{
+      min-width:0;
+      border:none;                     /* убираем рамки отдельных ячеек */
+      border-radius:0;
+      background:transparent;
+      border-bottom:1px solid #f0f0f0; /* тонкий разделитель между строками */
+      display:flex;                    /* метка слева, значение справа */
+      align-items:baseline;
+      gap:10px;
+    }
+    .history-row .history-cell:last-child{ border-bottom:none; }
+
+    .history-cell .cell-label{
+      margin-bottom:0;
+      flex:0 0 auto;
+      min-width:56px;                  /* ровный отступ значений */
+    }
+    .history-cell .cell-val{ flex:1; }
+
+    /* Источник ввода подсвечиваем полосой слева + фоном */
+    .history-cell.source{
+      background:#fff8f0;
+      border-left:3px solid #e67e22;
+      padding-left:9px;
+    }
+
+    .clear-btn{ font-size:11px; padding:4px 10px; }
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>simple<span class="accent">HEX</span></h1>
+    <p>simple HEX / binary converter</p>
+  </div>
+
+  <div class="conv-wrap">
+    <div class="conv-field">
+      <label>Decimal</label>
+      <input type="text" id="dec" data-name="DEC" autocomplete="off">
+    </div>
+    <div class="conv-field">
+      <label>Binary</label>
+      <input type="text" id="bin" data-name="BIN" autocomplete="off">
+    </div>
+    <div class="conv-field">
+      <label>Hex</label>
+      <input type="text" id="hex" data-name="HEX" autocomplete="off">
+    </div>
+    <div class="conv-field">
+      <label>Custom (base)</label>
+      <div class="conv-custom">
+        <input type="number" id="base" min="2" max="36" value="8" title="Основание">
+        <input type="text" id="cust" data-name="CUSTOM" autocomplete="off">
+      </div>
+    </div>
+  </div>
+
+  <div class="history">
+    <div class="history-header">
+      <div class="history-title">HISTORY</div>
+      <button type="button" id="clearHistory" class="clear-btn" aria-label="clear history">clear history</button>
+    </div>
+
+    <div class="history-scroll" id="historyScroll">
+      <button type="button" id="scrollTopBtn" class="scroll-top-btn" aria-label="scroll to top of history"> ↑ top </button>
+      <div class="history-list" id="historyList">
+        <div class="history-empty" id="historyEmpty">Here will appear your calculations...</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  (function(){
+    var dec  = document.getElementById('dec');
+    var bin  = document.getElementById('bin');
+    var hex  = document.getElementById('hex');
+    var cust = document.getElementById('cust');
+    var base = document.getElementById('base');
+
+    var historyList  = document.getElementById('historyList');
+    var historyEmpty = document.getElementById('historyEmpty');
+    var historyScroll = document.getElementById('historyScroll');
+    var clearBtn      = document.getElementById('clearHistory');
+
+    function clearErrors(){
+      [dec,bin,hex,cust].forEach(function(el){ el.classList.remove('error'); });
+    }
+
+    function getBase(){
+      var b = parseInt(base.value, 10);
+      if (isNaN(b) || b < 2 || b > 36) b = 8;
+      return b;
+    }
+
+    var DIGITS = '0123456789abcdefghijklmnopqrstuvwxyz';
+
+    function bigToString(value, radix){
+      var neg = value < 0n;
+      var v = neg ? -value : value;
+      var r = BigInt(radix);
+      if (v === 0n) return '0';
+      var out = '';
+      while (v > 0n){
+        out = DIGITS[Number(v % r)] + out;
+        v = v / r;
+      }
+      return (neg ? '-' : '') + out;
+    }
+
+    function parseBig(str, radix){
+      var r = BigInt(radix);
+      var neg = false;
+      str = str.toLowerCase();
+      if (str[0] === '-'){ neg = true; str = str.slice(1); }
+      if (str === '') return null;
+      var acc = 0n;
+      for (var i=0;i<str.length;i++){
+        var d = DIGITS.indexOf(str[i]);
+        if (d === -1 || d >= radix) return null;
+        acc = acc * r + BigInt(d);
+      }
+      return neg ? -acc : acc;
+    }
+
+    // ===== таблицы состояния фиксации =====
+    var timers = {};
+    var lastCommitted = {};   // BigInt, последнее записанное значение по полю
+    var lastRaw = {};         // string, последнее сырое выражение по полю
+
+    // radix для каждого поля (для tryCommit/parse)
+    function radixOf(el){
+      if (el === dec) return 10;
+      if (el === bin) return 2;
+      if (el === hex) return 16;
+      if (el === cust) return getBase();
+      return 10;
+    }
+
+    // Помечаем поле как уже зафиксированное текущим значением,
+    // чтобы blur без изменений не создавал запись.
+    function markCommitted(el, value){
+      lastCommitted[el.id] = value;
+      lastRaw[el.id] = el.value;
+    }
+
+    function updateAll(value, except){
+      var b = getBase();
+      if (except !== dec)  dec.value  = bigToString(value, 10);
+      if (except !== bin)  bin.value  = bigToString(value, 2);
+      if (except !== hex)  hex.value  = bigToString(value, 16).toUpperCase();
+      if (except !== cust) cust.value = bigToString(value, b).toUpperCase();
+
+      // Синхронизируем состояние ВСЕХ полей, КРОМЕ источника ввода.
+      // Источник зафиксируется позже — при blur / Enter / таймере,
+      // иначе tryCommit посчитает, что записывать нечего.
+      [dec,bin,hex,cust].forEach(function(f){
+        if (f !== except) markCommitted(f, value);
+      });
+    }
+
+    function evalExpr(raw, radix){
+      var s = raw.replace(/\s+/g, '');
+      if (s === '') return null;
+      var tokens = [];
+      var i = 0;
+      while (i < s.length){
+        var ch = s[i];
+        if ('+-*/()'.indexOf(ch) !== -1){ tokens.push(ch); i++; continue; }
+        var localRadix = radix;
+        if (s[i] === '0' && (s[i+1]==='x'||s[i+1]==='X')){ localRadix=16; i+=2; }
+        else if (s[i] === '0' && (s[i+1]==='b'||s[i+1]==='B')){ localRadix=2; i+=2; }
+        var valid = DIGITS.slice(0, localRadix);
+        var numStr = '';
+        while (i < s.length && valid.indexOf(s[i].toLowerCase()) !== -1){ numStr += s[i]; i++; }
+        if (numStr === '') return NaN;
+        var v = parseBig(numStr, localRadix);
+        if (v === null) return NaN;
+        tokens.push(v);
+      }
+      try { return parseExpr(tokens, {pos:0}); }
+      catch(e){ return NaN; }
+    }
+
+    function parseExpr(tokens, st){
+      var value = parseTerm(tokens, st);
+      while (st.pos < tokens.length && (tokens[st.pos]==='+' || tokens[st.pos]==='-')){
+        var op = tokens[st.pos++];
+        var rhs = parseTerm(tokens, st);
+        value = (op === '+') ? value + rhs : value - rhs;
+      }
+      return value;
+    }
+    function parseTerm(tokens, st){
+      var value = parseFactor(tokens, st);
+      while (st.pos < tokens.length && (tokens[st.pos]==='*' || tokens[st.pos]==='/')){
+        var op = tokens[st.pos++];
+        var rhs = parseFactor(tokens, st);
+        if (op === '*') value = value * rhs;
+        else { if (rhs === 0n) throw new Error('div0'); value = value / rhs; }
+      }
+      return value;
+    }
+    function parseFactor(tokens, st){
+      var t = tokens[st.pos];
+      if (t === '+'){ st.pos++; return parseFactor(tokens, st); }
+      if (t === '-'){ st.pos++; return -parseFactor(tokens, st); }
+      if (t === '('){
+        st.pos++;
+        var v = parseExpr(tokens, st);
+        if (tokens[st.pos] !== ')') throw new Error('paren');
+        st.pos++;
+        return v;
+      }
+      if (typeof t === 'bigint'){ st.pos++; return t; }
+      throw new Error('unexpected');
+    }
+
+    // ===== История =====
+    function makeCell(labelText, valueText, isSource){
+      var cell = document.createElement('div');
+      cell.className = 'history-cell' + (isSource ? ' source' : '');
+      cell.innerHTML =
+        '<span class="cell-label">' + escapeHtml(labelText) + '</span>' +
+        '<span class="cell-val">' + escapeHtml(valueText) + '</span>';
+      return cell;
+    }
+
+    function addHistory(sourceEl, rawInput, value){
+      if (historyEmpty){ historyEmpty.remove(); historyEmpty = null; }
+      var b = getBase();
+      var row = document.createElement('div');
+      row.className = 'history-row';
+
+      var srcIsDec  = (sourceEl === dec);
+      var srcIsBin  = (sourceEl === bin);
+      var srcIsHex  = (sourceEl === hex);
+      var srcIsCust = (sourceEl === cust);
+
+      row.appendChild(makeCell('DEC',
+        srcIsDec ? rawInput.trim() : bigToString(value,10), srcIsDec));
+      row.appendChild(makeCell('BIN',
+        srcIsBin ? rawInput.trim() : bigToString(value,2), srcIsBin));
+      row.appendChild(makeCell('HEX',
+        srcIsHex ? rawInput.trim() : bigToString(value,16).toUpperCase(), srcIsHex));
+      row.appendChild(makeCell('base ' + b,
+        srcIsCust ? rawInput.trim() : bigToString(value,b).toUpperCase(), srcIsCust));
+
+      historyList.insertBefore(row, historyList.firstChild);
+      updateClearBtn();
+      recalcHistoryHeight();
+    }
+
+    function escapeHtml(s){
+      return String(s).replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      });
+    }
+
+    function updateClearBtn(){
+      // кнопка видима только когда в истории есть хотя бы одна запись
+      var hasRows = historyList.querySelector('.history-row') !== null;
+      clearBtn.classList.toggle('visible', hasRows);
+    }
+
+    var scrollTopBtn = document.getElementById('scrollTopBtn');
+
+    function updateScrollTopBtn(){
+      // показываем, если прокручено достаточно вниз
+      scrollTopBtn.classList.toggle('visible', historyScroll.scrollTop > 40);
+    }
+
+    historyScroll.addEventListener('scroll', updateScrollTopBtn);
+
+    scrollTopBtn.addEventListener('click', function(){
+      historyScroll.scrollTo({ top:0, behavior:'smooth' });
+    });
+
+    // ===== Фиксация записи =====
+    function tryCommit(el){
+      var raw = el.value;
+      if (raw.trim() === '') return;
+      var r = radixOf(el);
+      if (el === cust && (r < 2 || r > 36)) return;
+
+      var value = evalExpr(raw, r);
+      if (typeof value !== 'bigint') return;
+
+      var key = el.id;
+      // Ничего не изменилось относительно уже зафиксированного — пропускаем.
+      if (lastCommitted[key] === value && lastRaw[key] === raw) return;
+
+      // Записываем и синхронизируем ВСЕ поля этим значением,
+      // чтобы последующие blur других полей не плодили дубли.
+      addHistory(el, raw, value);
+      [dec,bin,hex,cust].forEach(function(f){ markCommitted(f, value); });
+    }
+
+    function handle(el){
+      return function(){
+        clearErrors();
+        var raw = el.value;
+        if (raw.trim() === ''){
+          [dec,bin,hex,cust].forEach(function(f){ if(f!==el) f.value=''; });
+          resetTimer(el);
+          return;
+        }
+        var r = radixOf(el);
+        if (el === cust && (r < 2 || r > 36)){ el.classList.add('error'); return; }
+        var value = evalExpr(raw, r);
+        if (value === null) return;
+        if (typeof value !== 'bigint'){ el.classList.add('error'); return; }
+        updateAll(value, el);   // источник (el) НЕ помечается зафиксированным
+        resetTimer(el);
+      };
+    }
+
+    function resetTimer(el){
+      var key = el.id;
+      if (timers[key]) clearTimeout(timers[key]);
+      timers[key] = setTimeout(function(){ tryCommit(el); }, 5000);
+    }
+
+    function bindField(el){
+      el.addEventListener('input', handle(el));
+
+      el.addEventListener('blur', function(){
+        if (timers[el.id]) clearTimeout(timers[el.id]);
+        tryCommit(el);
+      });
+
+      // Enter — завершить вычисление: снять фокус (сработает blur -> tryCommit)
+      el.addEventListener('keydown', function(e){
+        if (e.key === 'Enter'){
+          e.preventDefault();
+          el.blur();
+        }
+      });
+    }
+
+    bindField(dec);
+    bindField(bin);
+    bindField(hex);
+    bindField(cust);
+
+    base.addEventListener('input', function(){
+      if (dec.value.trim() !== ''){
+        var v = evalExpr(dec.value, 10);
+        if (typeof v === 'bigint') updateAll(v, null);
+      }
+    });
+
+    clearBtn.addEventListener('click', function(){
+      clearBtn.classList.remove('visible');
+      scrollTopBtn.classList.remove('visible');   // <-- прячем кнопку "наверх"
+
+      var rows = historyList.querySelectorAll('.history-row');
+      rows.forEach(function(r){ r.remove(); });
+
+      if (!historyEmpty){
+        historyEmpty = document.createElement('div');
+        historyEmpty.className = 'history-empty';
+        historyEmpty.id = 'historyEmpty';
+        historyEmpty.textContent = 'Here will appear your calculations...';
+        historyList.appendChild(historyEmpty);
+      }
+
+      lastCommitted = {};
+      lastRaw = {};
+      recalcHistoryHeight();   // пересчитать высоту (список снова пустой)
+    });
+
+    var BOTTOM_GAP_VH = 0.20;   // запас снизу = 20% высоты экрана
+    var MOBILE_BP = 640;
+
+    function recalcHistoryHeight(){
+      var winH = window.innerHeight;
+      var topOffset = historyScroll.getBoundingClientRect().top; // расстояние от верха окна до блока
+      var gap = winH * BOTTOM_GAP_VH;
+
+      // На мобильном оставляем историю длиннее (как в прошлой версии),
+      // но по-прежнему привязываемся к низу экрана с меньшим запасом.
+      var isMobile = window.innerWidth <= MOBILE_BP;
+      if (isMobile) gap = winH * 0.10;   // на телефоне запас поменьше
+
+      var maxH = winH - topOffset - gap;
+      if (maxH < 120) maxH = 120;        // защита от слишком маленьких значений
+
+      historyScroll.style.setProperty('--history-max', maxH + 'px');
+    }
+
+    window.addEventListener('resize', recalcHistoryHeight);
+    window.addEventListener('load', recalcHistoryHeight);
+    recalcHistoryHeight();
+
+  })();
+</script>
+</body>
+</html>
