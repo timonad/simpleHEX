@@ -368,9 +368,6 @@
       if (except !== hex)  hex.value  = bigToString(value, 16).toUpperCase();
       if (except !== cust) cust.value = bigToString(value, b).toUpperCase();
 
-      // Синхронизируем состояние ВСЕХ полей, КРОМЕ источника ввода.
-      // Источник зафиксируется позже — при blur / Enter / таймере,
-      // иначе tryCommit посчитает, что записывать нечего.
       [dec,bin,hex,cust].forEach(function(f){
         if (f !== except) markCommitted(f, value);
       });
