@@ -1,6 +1,21 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+
+    <!-- Yandex.Metrika counter -->
+  <script type="text/javascript">
+      (function(m,e,t,r,i,k,a){
+          m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+          m[i].l=1*new Date();
+          for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+          k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+      })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=111935244', 'ym');
+
+      ym(111935244, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+  </script>
+  <noscript><div><img src="https://mc.yandex.ru/watch/111935244" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+  <!-- /Yandex.Metrika counter -->
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>simpleHEX</title>
@@ -72,7 +87,6 @@
     cursor:pointer;
     transition:opacity .3s ease, transform .3s ease, background .2s ease, color .2s ease;
 
-    /* по умолчанию скрыта (нет записей) */
     opacity:0;
     transform:translateY(-4px) scale(.96);
     pointer-events:none;
@@ -90,11 +104,9 @@
   .history-scroll{
     overflow-y:auto;
     border-radius:8px;
-    /* max-height задаётся из JS через CSS-переменную */
     max-height:var(--history-max, 80vh);
-    position:relative;   /* якорь для кнопки "наверх" */
+    position:relative;
   }
-  /* чуть заметный скроллбар */
   .history-scroll::-webkit-scrollbar{ width:8px; }
   .history-scroll::-webkit-scrollbar-thumb{
     background:#ddd; border-radius:4px;
@@ -104,7 +116,6 @@
   .scroll-top-btn{
     position:sticky;
     top:8px;
-    /* прижимаем к правому краю области прокрутки */
     float:right;
     margin-right:8px;
     z-index:5;
@@ -115,16 +126,15 @@
     text-transform:uppercase;
 
     color:#fff;
-    background:rgba(230,126,34,0.65);   /* полупрозрачный оранжевый */
+    background:rgba(230,126,34,0.65);
     border:1px solid rgba(230,126,34,0.4);
     border-radius:20px;
     padding:6px 14px;
     cursor:pointer;
-    backdrop-filter:blur(3px);          /* мягкое размытие фона под кнопкой */
+    backdrop-filter:blur(3px);
 
     transition:opacity .3s ease, transform .3s ease, background .2s ease;
 
-    /* скрыта у верха */
     opacity:0;
     transform:translateY(-6px);
     pointer-events:none;
@@ -139,7 +149,7 @@
 
   .history-list{
     display:flex; flex-direction:column; gap:8px;
-    padding-right:2px; /* чтобы контент не прилипал к скроллбару */
+    padding-right:2px;
   }
 
   .history-row{
@@ -183,7 +193,7 @@
   .history-empty{ font-size:13px; color:#ccc; font-style:italic; }
 
   /* ===================================================== */
-  /* ===== МОБИЛЬНАЯ ВЕРСИЯ (узкие экраны) ================ */
+  /* ================== MOBILE VERSION =================== */
   /* ===================================================== */
   @media (max-width: 640px){
     body{ padding:36px 14px; }
@@ -191,20 +201,17 @@
     .header{ margin-bottom:28px; }
     .header h1{ font-size:34px; }
 
-    /* Поля ввода — строго по вертикали */
     .conv-wrap{
       flex-direction:column;
       gap:14px;
     }
-    .conv-field{ min-width:0; }        /* убираем ограничение, чтобы не ломало колонку */
+    .conv-field{ min-width:0; }
 
-    /* История — каждая запись становится вертикальной карточкой */
     .history{ margin-top:26px; }
 
     .history-row{
-      flex-direction:column;           /* колонки в столбик */
+      flex-direction:column;
       gap:0;
-      /* объединяем ячейки в единую карточку */
       border:1px solid #eee;
       border-radius:8px;
       overflow:hidden;
@@ -213,11 +220,11 @@
 
     .history-cell{
       min-width:0;
-      border:none;                     /* убираем рамки отдельных ячеек */
+      border:none;
       border-radius:0;
       background:transparent;
-      border-bottom:1px solid #f0f0f0; /* тонкий разделитель между строками */
-      display:flex;                    /* метка слева, значение справа */
+      border-bottom:1px solid #f0f0f0;
+      display:flex;
       align-items:baseline;
       gap:10px;
     }
@@ -226,11 +233,10 @@
     .history-cell .cell-label{
       margin-bottom:0;
       flex:0 0 auto;
-      min-width:56px;                  /* ровный отступ значений */
+      min-width:56px;
     }
     .history-cell .cell-val{ flex:1; }
 
-    /* Источник ввода подсвечиваем полосой слева + фоном */
     .history-cell.source{
       background:#fff8f0;
       border-left:3px solid #e67e22;
@@ -336,12 +342,12 @@
       return neg ? -acc : acc;
     }
 
-    // ===== таблицы состояния фиксации =====
+    // ===== commit status tables =====
     var timers = {};
-    var lastCommitted = {};   // BigInt, последнее записанное значение по полю
-    var lastRaw = {};         // string, последнее сырое выражение по полю
+    var lastCommitted = {};   // BigInt, last entered value
+    var lastRaw = {};         // string, last string on the field
 
-    // radix для каждого поля (для tryCommit/parse)
+    // radix for each field
     function radixOf(el){
       if (el === dec) return 10;
       if (el === bin) return 2;
@@ -350,8 +356,6 @@
       return 10;
     }
 
-    // Помечаем поле как уже зафиксированное текущим значением,
-    // чтобы blur без изменений не создавал запись.
     function markCommitted(el, value){
       lastCommitted[el.id] = value;
       lastRaw[el.id] = el.value;
@@ -429,7 +433,7 @@
       throw new Error('unexpected');
     }
 
-    // ===== История =====
+    // ===== History =====
     function makeCell(labelText, valueText, isSource){
       var cell = document.createElement('div');
       cell.className = 'history-cell' + (isSource ? ' source' : '');
@@ -471,7 +475,7 @@
     }
 
     function updateClearBtn(){
-      // кнопка видима только когда в истории есть хотя бы одна запись
+      // visible only then there are at least 1 record
       var hasRows = historyList.querySelector('.history-row') !== null;
       clearBtn.classList.toggle('visible', hasRows);
     }
@@ -479,7 +483,6 @@
     var scrollTopBtn = document.getElementById('scrollTopBtn');
 
     function updateScrollTopBtn(){
-      // показываем, если прокручено достаточно вниз
       scrollTopBtn.classList.toggle('visible', historyScroll.scrollTop > 40);
     }
 
@@ -489,7 +492,7 @@
       historyScroll.scrollTo({ top:0, behavior:'smooth' });
     });
 
-    // ===== Фиксация записи =====
+    // ===== commit record =====
     function tryCommit(el){
       var raw = el.value;
       if (raw.trim() === '') return;
@@ -500,11 +503,8 @@
       if (typeof value !== 'bigint') return;
 
       var key = el.id;
-      // Ничего не изменилось относительно уже зафиксированного — пропускаем.
       if (lastCommitted[key] === value && lastRaw[key] === raw) return;
 
-      // Записываем и синхронизируем ВСЕ поля этим значением,
-      // чтобы последующие blur других полей не плодили дубли.
       addHistory(el, raw, value);
       [dec,bin,hex,cust].forEach(function(f){ markCommitted(f, value); });
     }
@@ -523,7 +523,7 @@
         var value = evalExpr(raw, r);
         if (value === null) return;
         if (typeof value !== 'bigint'){ el.classList.add('error'); return; }
-        updateAll(value, el);   // источник (el) НЕ помечается зафиксированным
+        updateAll(value, el);
         resetTimer(el);
       };
     }
@@ -542,7 +542,6 @@
         tryCommit(el);
       });
 
-      // Enter — завершить вычисление: снять фокус (сработает blur -> tryCommit)
       el.addEventListener('keydown', function(e){
         if (e.key === 'Enter'){
           e.preventDefault();
@@ -565,7 +564,7 @@
 
     clearBtn.addEventListener('click', function(){
       clearBtn.classList.remove('visible');
-      scrollTopBtn.classList.remove('visible');   // <-- прячем кнопку "наверх"
+      scrollTopBtn.classList.remove('visible');
 
       var rows = historyList.querySelectorAll('.history-row');
       rows.forEach(function(r){ r.remove(); });
@@ -580,24 +579,22 @@
 
       lastCommitted = {};
       lastRaw = {};
-      recalcHistoryHeight();   // пересчитать высоту (список снова пустой)
+      recalcHistoryHeight();
     });
 
-    var BOTTOM_GAP_VH = 0.20;   // запас снизу = 20% высоты экрана
+    var BOTTOM_GAP_VH = 0.20;
     var MOBILE_BP = 640;
 
     function recalcHistoryHeight(){
       var winH = window.innerHeight;
-      var topOffset = historyScroll.getBoundingClientRect().top; // расстояние от верха окна до блока
+      var topOffset = historyScroll.getBoundingClientRect().top;
       var gap = winH * BOTTOM_GAP_VH;
 
-      // На мобильном оставляем историю длиннее (как в прошлой версии),
-      // но по-прежнему привязываемся к низу экрана с меньшим запасом.
       var isMobile = window.innerWidth <= MOBILE_BP;
-      if (isMobile) gap = winH * 0.10;   // на телефоне запас поменьше
+      if (isMobile) gap = winH * 0.10;
 
       var maxH = winH - topOffset - gap;
-      if (maxH < 120) maxH = 120;        // защита от слишком маленьких значений
+      if (maxH < 120) maxH = 120;
 
       historyScroll.style.setProperty('--history-max', maxH + 'px');
     }
