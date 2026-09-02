@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 
   <meta charset="UTF-8">
@@ -64,6 +64,47 @@
   .conv-field input.error{ border-color:#e74c3c; background:#fdecea; }
   .conv-custom{ display:flex; gap:8px; }
   .conv-custom #base{ max-width:80px; }
+
+  .info-tip{
+    position:relative;
+    display:inline-block;
+    width:14px; height:14px;
+    font-size:11px; line-height:14px; text-align:center;
+    color:#bbb; border:1px solid #ddd; border-radius:50%;
+    cursor:help; margin-left:4px;
+    transition:color .2s, border-color .2s;
+  }
+  .info-tip:hover{ color:#e67e22; border-color:#e67e22; }
+
+  /* Кастомный tooltip */
+  .info-tip::after{
+    content:attr(data-tooltip);
+    position:absolute;
+    bottom:120%; left:50%;
+    transform:translateX(-50%) translateY(-4px);
+    background:#1f2421; color:#f7f4ef;
+    font-size:11px; font-weight:normal;
+    white-space:nowrap;
+    padding:6px 10px; border-radius:6px;
+    opacity:0; pointer-events:none;
+    transition:opacity .25s, transform .25s;
+    z-index:10;
+  }
+  .info-tip::before{
+    /* стрелочка вниз */
+    content:'';
+    position:absolute;
+    bottom:100%; left:50%;
+    transform:translateX(-50%);
+    border:5px solid transparent;
+    border-top-color:#1f2421;
+    opacity:0;
+    transition:opacity .25s;
+  }
+  .info-tip:hover::after, .info-tip:hover::before{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
 
   /* ===== HISTORY header + clear button ===== */
   .history{ width:100%; max-width:1100px; margin-top:36px; }
@@ -250,6 +291,55 @@
 
     .clear-btn{ font-size:11px; padding:4px 10px; }
   }
+
+  .feedback-section{
+    width:100%; max-width:600px;
+    margin:48px auto 24px;
+    padding:0 20px;
+  }
+  .feedback-options{
+    display:flex; align-items:center; gap:10px; margin-bottom:10px;
+  }
+  .feedback-email{
+    font-size:13px; color:#e67e22; text-decoration:none;
+    padding:6px 12px; border:1px solid #f0c088; border-radius:6px;
+    transition:background .2s;
+  }
+  .feedback-email:hover{ background:#fff8f0; }
+  .feedback-or{ font-size:12px; color:#ccc; }
+  .feedback-toggle[open]{
+    animation:expandFeedback .3s ease;
+  }
+  @keyframes expandFeedback{
+    from{ max-height:50px; opacity:0.7; }
+    to{ max-height:400px; opacity:1; }
+  }
+  .feedback-toggle{
+    background:#fff;
+    border:1px solid #ddd;
+    border-radius:8px;
+    padding:16px 20px;
+  }
+  .feedback-toggle summary{
+    font-size:14px; color:#888; cursor:pointer;
+    text-transform:uppercase; letter-spacing:.5px;
+  }
+  .feedback-toggle[open] summary{ margin-bottom:12px; color:#e67e22; }
+  .feedback-toggle form{ display:flex; flex-direction:column; gap:10px; }
+  .feedback-toggle label{
+    font-size:13px; color:#666; display:flex; flex-direction:column; gap:4px;
+  }
+  .feedback-toggle input, .feedback-toggle textarea{
+    padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;
+    font-family:Arial,sans-serif;
+  }
+  .feedback-toggle button{
+    align-self:flex-start;
+    padding:8px 20px; background:#e67e22; color:#fff; border:none;
+    border-radius:6px; cursor:pointer; font-size:13px; text-transform:uppercase;
+    letter-spacing:.5px;
+  }
+  .feedback-toggle button:hover{ background:#c25e0a; }
 </style>
 </head>
 <body>
@@ -260,15 +350,24 @@
 
   <div class="conv-wrap">
     <div class="conv-field">
-      <label>Decimal</label>
+      <label>
+        Decimal
+        <span class="info-tip" data-tooltip="Supports expressions: (10 + 5) * 2">?</span>
+      </label>
       <input type="text" id="dec" data-name="DEC" autocomplete="off">
     </div>
     <div class="conv-field">
-      <label>Binary</label>
+      <label>
+        Binary
+        <span class="info-tip" data-tooltip="Use 0b prefix: 0b1010 + 1">?</span>
+      </label>
       <input type="text" id="bin" data-name="BIN" autocomplete="off">
     </div>
     <div class="conv-field">
-      <label>Hex</label>
+      <label>
+        Hex
+        <span class="info-tip" data-tooltip="Use 0x prefix: 0xFF + 0x1">?</span>
+      </label>
       <input type="text" id="hex" data-name="HEX" autocomplete="off">
     </div>
     <div class="conv-field">
@@ -294,6 +393,34 @@
     </div>
   </div>
 
+  <div class="feedback-section">
+    <details class="feedback-toggle">
+      <summary>Feedback / Report Issue</summary>
+      <p class="feedback-options">
+        <a href="mailto:feedback@simplehex.anonaddy.com" class="feedback-email">📧 Email us</a>
+        <span class="feedback-or">or</span>
+      </p>
+      <form name="feedback" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+        <input type="hidden" name="form-name" value="feedback">
+        <p style="display:none;">
+          <label>Don't fill this out if you're human: <input name="bot-field"></label>
+        </p>
+
+        <label>
+          Your email (optional):
+          <input type="email" name="email" placeholder="your@email.com">
+        </label>
+
+        <label>
+          Message:
+          <textarea name="message" rows="4" placeholder="Bug report, feature request, or feedback..." required></textarea>
+        </label>
+
+        <button type="submit">Send</button>
+      </form>
+    </details>
+  </div>
+
 <script>
   (function(){
     var dec  = document.getElementById('dec');
@@ -306,6 +433,86 @@
     var historyEmpty = document.getElementById('historyEmpty');
     var historyScroll = document.getElementById('historyScroll');
     var clearBtn      = document.getElementById('clearHistory');
+
+    var STORAGE_KEY = 'simplehex_history';
+    var MAX_STORED = 50;
+
+    function saveHistoryToStorage(){
+      var rows = historyList.querySelectorAll('.history-row');
+      var data = [];
+      rows.forEach(function(row){
+        var cells = row.querySelectorAll('.history-cell');
+        if (cells.length === 4){
+          data.push({
+            dec: cells[0].querySelector('.cell-val').textContent,
+            bin: cells[1].querySelector('.cell-val').textContent,
+            hex: cells[2].querySelector('.cell-val').textContent,
+            cust: cells[3].querySelector('.cell-val').textContent,
+            custBase: cells[3].querySelector('.cell-label').textContent,
+            source: row.querySelector('.history-cell.source') 
+              ? Array.from(cells).indexOf(row.querySelector('.history-cell.source')) 
+              : 0
+          });
+        }
+      });
+      if (data.length > MAX_STORED) data = data.slice(0, MAX_STORED);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch(e){ /* quota exceeded — ignored */ }
+    }
+
+    function loadHistoryFromStorage(){
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        var data = JSON.parse(raw);
+        if (!Array.isArray(data)) return;
+
+        // Delete placeholder
+        if (historyEmpty){ historyEmpty.remove(); historyEmpty = null; }
+
+        data.forEach(function(item){
+          var row = document.createElement('div');
+          row.className = 'history-row';
+
+          row.appendChild(makeCell('DEC', item.dec, item.source === 0));
+          row.appendChild(makeCell('BIN', item.bin, item.source === 1));
+          row.appendChild(makeCell('HEX', item.hex, item.source === 2));
+          row.appendChild(makeCell(item.custBase, item.cust, item.source === 3));
+
+          historyList.insertBefore(row, historyList.firstChild);
+        });
+
+        updateClearBtn();
+        recalcHistoryHeight();
+      } catch(e){ /* JSON parse error — ignored */ }
+    }
+
+    // Placeholder examples
+    var placeholders = {
+      dec: ['255', '(10 + 5) * 2', '1024 / 8', '0xFF'],
+      bin: ['1010', '0b1111 + 1', '0b1000 * 2'],
+      hex: ['FF', '0xFF + 0x1', '0xDEADBEEF', 'A * 10'],
+      cust: ['77', '10 + 7', '0xFF']
+    };
+
+    function setRandomPlaceholders(){
+      ['dec','bin','hex','cust'].forEach(function(id){
+        var el = document.getElementById(id);
+        var examples = placeholders[id];
+        el.placeholder = examples[Math.floor(Math.random() * examples.length)];
+      });
+    }
+
+    // Установить при загрузке
+    setRandomPlaceholders();
+
+    // Обновлять placeholder при очистке поля
+    [dec,bin,hex,cust].forEach(function(el){
+      el.addEventListener('input', function(){
+        if (el.value === '') setRandomPlaceholders();
+      });
+    });
 
     function clearErrors(){
       [dec,bin,hex,cust].forEach(function(el){ el.classList.remove('error'); });
@@ -468,6 +675,8 @@
       historyList.insertBefore(row, historyList.firstChild);
       updateClearBtn();
       recalcHistoryHeight();
+
+      saveHistoryToStorage();
     }
 
     function escapeHtml(s){
@@ -582,6 +791,8 @@
       lastCommitted = {};
       lastRaw = {};
       recalcHistoryHeight();
+
+      localStorage.removeItem(STORAGE_KEY);
     });
 
     var BOTTOM_GAP_VH = 0.20;
@@ -604,6 +815,20 @@
     window.addEventListener('resize', recalcHistoryHeight);
     window.addEventListener('load', recalcHistoryHeight);
     recalcHistoryHeight();
+
+    // Examples
+    document.querySelectorAll('.example-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var fieldName = btn.dataset.field;
+        var value = btn.dataset.value;
+        var el = document.getElementById(fieldName);
+        el.value = value;
+        el.focus();
+        el.dispatchEvent(new Event('input', {bubbles:true}));
+      });
+    });
+
+    loadHistoryFromStorage();
 
   })();
 </script>
