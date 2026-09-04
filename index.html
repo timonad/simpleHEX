@@ -48,6 +48,59 @@
   }
   .conv-wrap{ flex-wrap:wrap; }
 
+  /* Wrapper больше не нужен для positioning subscript */
+  .input-wrapper{
+    width:100%;
+  }
+
+  /* Базовые стили для editable div (имитация input) */
+  .editable-input{
+    padding:14px; 
+    font-size:18px; 
+    border:1px solid #ddd; 
+    border-radius:8px; 
+    width:100%;
+    min-height:50px;  /* чтобы не схлопывался */
+    background:#fff;
+    cursor:text;
+    white-space:pre-wrap;  /* сохраняем пробелы */
+    overflow-wrap:break-word;
+    font-family:Arial, sans-serif;
+    color:#222;
+    outline:none;
+    transition:border-color .2s;
+  }
+
+  .editable-input:focus{
+    border-color:#e67e22;
+  }
+
+  .editable-input.error{
+    border-color:#e74c3c;
+    background:#fdecea;
+  }
+
+  /* Placeholder через псевдоэлемент */
+  .editable-input:empty::before{
+    content:attr(data-placeholder);
+    color:#ccc;
+    pointer-events:none;
+  }
+
+  /* Subscripts внутри editable */
+  .editable-input sub{
+    font-size:12px;
+    color:#ccc;
+    user-select:none;  /* не копируется */
+    pointer-events:none;
+    margin-left:1px;
+    vertical-align:sub;
+    line-height:0;
+  }
+
+  /* Убираем старые стили для input */
+  /* .conv-field input { ... } — удалить или закомментировать */
+/*
   .conv-field{
     flex:1;
     min-width:200px;
@@ -65,7 +118,7 @@
     width:100%;
   }
   .input-wrapper input{
-    padding-right:32px; /* место для subscript справа */
+    padding-right:32px; // место для subscript справа
   }
 
   .base-subscript{
@@ -75,24 +128,24 @@
     transform:translateY(-50%);
     font-size:13px;
     color:#ccc;
-    pointer-events:none;  /* клики проходят сквозь него */
-    user-select:none;     /* не копируется при выделении */
+    pointer-events:none;  // клики проходят сквозь него
+    user-select:none;     // не копируется при выделении
     font-family:Arial, sans-serif;
     line-height:1;
   }
 
-  /* Скрыть subscript, когда поле пустое (показываем placeholder) */
+  // Скрыть subscript, когда поле пустое (показываем placeholder) 
   .input-wrapper input:placeholder-shown + .base-subscript{
     opacity:0;
   }
 
-  /* Скрыть subscript при фокусе (опционально, если мешает при вводе) */
-  /* .input-wrapper input:focus + .base-subscript{ opacity:0.4; } */
+  // Скрыть subscript при фокусе (опционально, если мешает при вводе) 
+  // .input-wrapper input:focus + .base-subscript{ opacity:0.4; }
   .conv-field input:focus{ outline:none; border-color:#e67e22; }
   .conv-field input.error{ border-color:#e74c3c; background:#fdecea; }
   .conv-custom{ display:flex; gap:8px; }
   .conv-custom #base{ max-width:80px; }
-
+*/
   .info-tip{
     position:relative;
     display:inline-block;
@@ -427,43 +480,60 @@
   </div>
 
   <div class="conv-wrap">
+    <!-- Decimal -->
     <div class="conv-field">
-      <label>
-        Decimal
-        <span class="info-tip" data-tooltip="Supports expressions: (10 + 5) * 2">?</span>
-      </label>
+      <label>Decimal <span class="info-tip" data-tooltip="Supports expressions: (10 + 5) * 2">?</span></label>
       <div class="input-wrapper">
-        <input type="text" id="dec" data-name="DEC" data-base="10" autocomplete="off">
-        <span class="base-subscript">₁₀</span>
+        <div class="editable-input" 
+            id="dec" 
+            contenteditable="true" 
+            data-name="DEC" 
+            data-base="10"
+            data-placeholder="255"
+            spellcheck="false"></div>
       </div>
     </div>
+
+    <!-- Binary -->
     <div class="conv-field">
-      <label>
-        Binary
-        <span class="info-tip" data-tooltip="Use 0b prefix: 0b1010 + 1">?</span>
-      </label>
+      <label>Binary <span class="info-tip" data-tooltip="Use 0b prefix: 0b1010 + 1">?</span></label>
       <div class="input-wrapper">
-        <input type="text" id="bin" data-name="BIN" data-base="2" autocomplete="off">
-        <span class="base-subscript">₂</span>
+        <div class="editable-input" 
+            id="bin" 
+            contenteditable="true" 
+            data-name="BIN" 
+            data-base="2"
+            data-placeholder="1010"
+            spellcheck="false"></div>
       </div>
     </div>
+
+    <!-- Hex -->
     <div class="conv-field">
-      <label>
-        Hex
-        <span class="info-tip" data-tooltip="Use 0x prefix: 0xFF + 0x1">?</span>
-      </label>
+      <label>Hex <span class="info-tip" data-tooltip="Use 0x prefix: 0xFF + 0x1">?</span></label>
       <div class="input-wrapper">
-        <input type="text" id="hex" data-name="HEX" data-base="16" autocomplete="off">
-        <span class="base-subscript">₁₆</span>
+        <div class="editable-input" 
+            id="hex" 
+            contenteditable="true" 
+            data-name="HEX" 
+            data-base="16"
+            data-placeholder="FF"
+            spellcheck="false"></div>
       </div>
     </div>
+
+    <!-- Custom -->
     <div class="conv-field">
       <label>Custom (base)</label>
       <div class="conv-custom">
         <input type="number" id="base" min="2" max="36" value="8" title="Base">
         <div class="input-wrapper">
-          <input type="text" id="cust" data-name="CUSTOM" autocomplete="off">
-          <span class="base-subscript" id="custBase">₈</span>
+          <div class="editable-input" 
+              id="cust" 
+              contenteditable="true" 
+              data-name="CUSTOM"
+              data-placeholder="77"
+              spellcheck="false"></div>
         </div>
       </div>
     </div>
@@ -580,6 +650,154 @@
       } catch(e){ /* JSON parse error — ignored */ }
     }
 
+    // ===== ContentEditable helpers =====
+
+    function toSubscript(num){
+      return num.toString().split('').map(function(d){
+        return '₀₁₂₃₄₅₆₇₈₉'[d];
+      }).join('');
+    }
+
+    // Получить чистый текст из contenteditable (без HTML)
+    function getPlainText(el){
+      var text = el.textContent || '';
+      return text.replace(/\u200B/g, ''); // убираем zero-width space
+    }
+
+    // Сохранить позицию курсора (offset от начала текста)
+    function saveCursorPosition(el){
+      var sel = window.getSelection();
+      if (!sel.rangeCount) return 0;
+      var range = sel.getRangeAt(0);
+      var preCaretRange = range.cloneRange();
+      preCaretRange.selectNodeContents(el);
+      preCaretRange.setEnd(range.endContainer, range.endOffset);
+      return preCaretRange.toString().length;
+    }
+
+    // Восстановить позицию курсора
+    function restoreCursorPosition(el, offset){
+      var sel = window.getSelection();
+      var range = document.createRange();
+      var charIndex = 0;
+      var nodeStack = [el];
+      var node, foundStart = false;
+
+      while (!foundStart && (node = nodeStack.pop())){
+        if (node.nodeType === Node.TEXT_NODE){
+          var nextCharIndex = charIndex + node.length;
+          if (offset >= charIndex && offset <= nextCharIndex){
+            range.setStart(node, offset - charIndex);
+            range.collapse(true);
+            foundStart = true;
+          }
+          charIndex = nextCharIndex;
+        } else {
+          var children = node.childNodes;
+          for (var i = children.length - 1; i >= 0; i--){
+            nodeStack.push(children[i]);
+          }
+        }
+      }
+
+      if (!foundStart){
+        // Если offset за пределами — ставим в конец
+        range.selectNodeContents(el);
+        range.collapse(false);
+      }
+
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    // Парсинг текста и добавление subscripts
+    function renderWithSubscripts(el, baseRadix){
+      var cursorPos = saveCursorPosition(el);
+      var text = getPlainText(el);
+
+      if (text.trim() === ''){
+        el.textContent = '';
+        return text;
+      }
+
+      var tokens = tokenizeExpression(text);
+      var html = '';
+
+      tokens.forEach(function(token){
+        if (token.type === 'number'){
+          var subscript = toSubscript(token.base);
+          // Экранируем текст
+          var escaped = escapeHtml(token.text);
+          html += escaped + '<sub>' + subscript + '</sub>';
+        } else {
+          html += escapeHtml(token.text);
+        }
+      });
+
+      el.innerHTML = html;
+      restoreCursorPosition(el, cursorPos);
+      return text;
+    }
+
+    // Токенизация выражения (определение чисел и их оснований)
+    function tokenizeExpression(text){
+      var tokens = [];
+      var i = 0;
+
+      while (i < text.length){
+        var ch = text[i];
+
+        // Операторы и пробелы
+        if (/[\s+\-*/()]/.test(ch)){
+          tokens.push({type:'operator', text:ch});
+          i++;
+          continue;
+        }
+
+        // Число
+        var numStart = i;
+        var detectedBase = null;
+
+        // Префикс 0x
+        if (text[i] === '0' && (text[i+1] === 'x' || text[i+1] === 'X')){
+          detectedBase = 16;
+          i += 2;
+          while (i < text.length && /[0-9a-fA-F]/.test(text[i])) i++;
+        }
+        // Префикс 0b
+        else if (text[i] === '0' && (text[i+1] === 'b' || text[i+1] === 'B')){
+          detectedBase = 2;
+          i += 2;
+          while (i < text.length && /[01]/.test(text[i])) i++;
+        }
+        // Голое число (hex, decimal, или смешанное)
+        else {
+          // Читаем все alphanumeric
+          while (i < text.length && /[0-9a-zA-Z]/.test(text[i])) i++;
+          var numText = text.slice(numStart, i);
+
+          // Попробуем определить основание по содержимому
+          if (/^[01]+$/.test(numText)){
+            detectedBase = 2; // может быть binary
+          } else if (/^[0-9a-fA-F]+$/.test(numText)){
+            // Может быть hex или decimal
+            if (/[a-fA-F]/.test(numText)){
+              detectedBase = 16; // точно hex
+            } else {
+              detectedBase = 10; // скорее всего decimal
+            }
+          } else {
+            detectedBase = 10; // по умолчанию
+          }
+        }
+
+        var numText = text.slice(numStart, i);
+        tokens.push({type:'number', text:numText, base:detectedBase});
+      }
+
+      return tokens;
+    }
+
     // Placeholder examples
     var placeholders = {
       dec: ['255', '(10 + 5) * 2', '1024 / 8', '0xFF'],
@@ -592,7 +810,8 @@
       ['dec','bin','hex','cust'].forEach(function(id){
         var el = document.getElementById(id);
         var examples = placeholders[id];
-        el.placeholder = examples[Math.floor(Math.random() * examples.length)];
+        var placeholder = examples[Math.floor(Math.random() * examples.length)];
+        el.setAttribute('data-placeholder', placeholder);
       });
     }
 
@@ -667,10 +886,23 @@
 
     function updateAll(value, except){
       var b = getBase();
-      if (except !== dec)  dec.value  = bigToString(value, 10);
-      if (except !== bin)  bin.value  = bigToString(value, 2);
-      if (except !== hex)  hex.value  = bigToString(value, 16).toUpperCase();
-      if (except !== cust) cust.value = bigToString(value, b).toUpperCase();
+      
+      if (except !== dec){
+        dec.textContent = bigToString(value, 10);
+        renderWithSubscripts(dec, 10);
+      }
+      if (except !== bin){
+        bin.textContent = bigToString(value, 2);
+        renderWithSubscripts(bin, 2);
+      }
+      if (except !== hex){
+        hex.textContent = bigToString(value, 16).toUpperCase();
+        renderWithSubscripts(hex, 16);
+      }
+      if (except !== cust){
+        cust.textContent = bigToString(value, b).toUpperCase();
+        renderWithSubscripts(cust, b);
+      }
 
       [dec,bin,hex,cust].forEach(function(f){
         if (f !== except) markCommitted(f, value);
@@ -797,8 +1029,9 @@
 
     // ===== commit record =====
     function tryCommit(el){
-      var raw = el.value;
+      var raw = getPlainText(el);
       if (raw.trim() === '') return;
+      
       var r = radixOf(el);
       if (el === cust && (r < 2 || r > 36)) return;
 
@@ -815,17 +1048,32 @@
     function handle(el){
       return function(){
         clearErrors();
-        var raw = el.value;
+        
+        // Рендерим с subscripts и получаем чистый текст
+        var baseRadix = radixOf(el);
+        var raw = renderWithSubscripts(el, baseRadix);
+
         if (raw.trim() === ''){
-          [dec,bin,hex,cust].forEach(function(f){ if(f!==el) f.value=''; });
+          [dec,bin,hex,cust].forEach(function(f){ 
+            if(f !== el) f.textContent = ''; 
+          });
           resetTimer(el);
           return;
         }
-        var r = radixOf(el);
-        if (el === cust && (r < 2 || r > 36)){ el.classList.add('error'); return; }
+
+        var r = baseRadix;
+        if (el === cust && (r < 2 || r > 36)){ 
+          el.classList.add('error'); 
+          return; 
+        }
+
         var value = evalExpr(raw, r);
         if (value === null) return;
-        if (typeof value !== 'bigint'){ el.classList.add('error'); return; }
+        if (typeof value !== 'bigint'){ 
+          el.classList.add('error'); 
+          return; 
+        }
+
         updateAll(value, el);
         resetTimer(el);
       };
@@ -851,6 +1099,12 @@
           el.blur();
         }
       });
+
+      el.addEventListener('paste', function(e){
+        e.preventDefault();
+        var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        document.execCommand('insertText', false, text);
+      });
     }
 
     bindField(dec);
@@ -858,15 +1112,19 @@
     bindField(hex);
     bindField(cust);
 
+    [dec,bin,hex,cust].forEach(function(el){
+      el.addEventListener('copy', function(e){
+        e.preventDefault();
+        var text = getPlainText(el);
+        e.clipboardData.setData('text/plain', text);
+      });
+    });
+
     base.addEventListener('input', function(){
       var b = getBase();
-      var subscript = b.toString().split('').map(function(d){
-        return '₀₁₂₃₄₅₆₇₈₉'[d];
-      }).join('');
-      document.getElementById('custBase').textContent = subscript;
-
-      if (dec.value.trim() !== ''){
-        var v = evalExpr(dec.value, 10);
+      
+      if (dec.textContent.trim() !== ''){
+        var v = evalExpr(getPlainText(dec), 10);
         if (typeof v === 'bigint') updateAll(v, null);
       }
     });
