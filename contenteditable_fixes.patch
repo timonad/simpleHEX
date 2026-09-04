@@ -1,0 +1,253 @@
+### Исправления для t_v0.3
+
+## 1. CSS — исправление стилей полей
+
+Найдите в блоке <style> (примерно строки 107-130) и УДАЛИТЕ/ЗАКОММЕНТИРУЙТЕ старые стили:
+```css
+/* УДАЛИТЬ ЭТИ БЛОКИ - они больше не применяются к contenteditable */
+.conv-field input{ ... }
+.conv-field input:focus{ ... }
+.conv-field input.error{ ... }
+```
+
+ДОБАВЬТЕ после .input-wrapper стилей:
+```css
+/* Custom base field layout */
+.conv-custom{
+  display:flex;
+  gap:8px;
+  align-items:stretch;
+}
+
+.conv-custom #base{
+  width:80px;
+  padding:14px;
+  font-size:18px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  background:#fff;
+  text-align:center;
+}
+
+.conv-custom .input-wrapper{
+  flex:1;
+}
+```
+
+Убедитесь, что .editable-input содержит:
+```css
+.editable-input{
+  padding:14px; 
+  font-size:18px; 
+  border:1px solid #ddd; 
+  border-radius:8px; 
+  width:100%;  /* <-- важно */
+  min-height:50px;
+  background:#fff;
+  cursor:text;
+  white-space:pre-wrap;
+  overflow-wrap:break-word;
+  font-family:Arial, sans-serif;
+  color:#222;
+  outline:none;
+  transition:border-color .2s;
+}
+```
+
+---
+
+## 2. JS — Исправление tokenizeExpression (subscript всегда показывал ₂)
+
+Найдите функцию tokenizeExpression (примерно строка 257) и ЗАМЕНИТЕ её полностью:
+
+```js
+function tokenizeExpression(text, defaultBase){
+  var tokens = [];
+  var i = 0;
+
+  while (i < text.length){
+    var ch = text[i];
+
+    // Operators and spaces
+    if (/[\s+\-*/()]/.test(ch)){
+      tokens.push({type:'operator', text:ch});
+      i++;
+      continue;
+    }
+
+    // Number
+    var numStart = i;
+    var detectedBase = null;
+
+    // Prefix 0x
+    if (text[i] === '0' && (text[i+1] === 'x' || text[i+1] === 'X')){
+      detectedBase = 16;
+      i += 2;
+      while (i < text.length && /[0-9a-fA-F]/.test(text[i])) i++;
+    }
+    // Prefix 0b
+    else if (text[i] === '0' && (text[i+1] === 'b' || text[i+1] === 'B')){
+      detectedBase = 2;
+      i += 2;
+      while (i < text.length && /[01]/.test(text[i])) i++;
+    }
+    // Bare number — use field's base
+    else {
+      detectedBase = defaultBase;
+      // Read all characters valid for this base
+      var validChars = DIGITS.slice(0, defaultBase);
+      while (i < text.length && validChars.indexOf(text[i].toLowerCase()) !== -1){
+        i++;
+      }
+    }
+
+    var numText = text.slice(numStart, i);
+    if (numText.length > 0){
+      tokens.push({type:'number', text:numText, base:detectedBase});
+    }
+  }
+
+  return tokens;
+}
+```
+
+И обновите renderWithSubscripts (примерно строка 240) — добавьте передачу baseRadix:
+
+```js
+function renderWithSubscripts(el, baseRadix){
+  var cursorPos = saveCursorPosition(el);
+  var text = getPlainText(el);
+
+  if (text.trim() === ''){
+    el.textContent = '';
+    return text;
+  }
+
+  var tokens = tokenizeExpression(text, baseRadix); // <-- передать baseRadix
+  var html = '';
+
+  tokens.forEach(function(token){
+    if (token.type === 'number'){
+      var subscript = toSubscript(token.base);
+      var escaped = escapeHtml(token.text);
+      html += escaped + '<sub>' + subscript + '</sub>';
+    } else {
+      html += escapeHtml(token.text);
+    }
+  });
+
+  el.innerHTML = html;
+  restoreCursorPosition(el, cursorPos);
+  return text;
+}
+```
+
+---
+
+## 3. JS — Исправление утечки памяти (бесконечный цикл)
+
+В начале IIFE (примерно строка 200), после объявления переменных, ДОБАВЬТЕ:
+
+```js
+var isRendering = {}; // flags to prevent recursion
+```
+
+ЗАМЕНИТЕ функцию handle (примерно строка 287):
+
+```js
+function handle(el){
+  return function(){
+    // Protection from recursion
+    if (isRendering[el.id]) return;
+    isRendering[el.id] = true;
+
+    clearErrors();
+    
+    var baseRadix = radixOf(el);
+    var raw = renderWithSubscripts(el, baseRadix);
+
+    if (raw.trim() === ''){
+      [dec,bin,hex,cust].forEach(function(f){ 
+        if(f !== el) f.textContent = ''; 
+      });
+      resetTimer(el);
+      isRendering[el.id] = false;
+      return;
+    }
+
+    var r = baseRadix;
+    if (el === cust && (r < 2 || r > 36)){ 
+      el.classList.add('error'); 
+      isRendering[el.id] = false;
+      return; 
+    }
+
+    var value = evalExpr(raw, r);
+    if (value === null){
+      isRendering[el.id] = false;
+      return;
+    }
+    if (typeof value !== 'bigint'){ 
+      el.classList.add('error'); 
+      isRendering[el.id] = false;
+      return; 
+    }
+
+    updateAll(value, el);
+    resetTimer(el);
+    isRendering[el.id] = false;
+  };
+}
+```
+
+ЗАМЕНИТЕ функцию updateAll (примерно строка 272):
+
+```js
+function updateAll(value, except){
+  var b = getBase();
+  
+  // Block rendering for all fields except source
+  [dec,bin,hex,cust].forEach(function(f){ 
+    if (f !== except) isRendering[f.id] = true; 
+  });
+
+  if (except !== dec){
+    dec.textContent = bigToString(value, 10);
+    renderWithSubscripts(dec, 10);
+  }
+  if (except !== bin){
+    bin.textContent = bigToString(value, 2);
+    renderWithSubscripts(bin, 2);
+  }
+  if (except !== hex){
+    hex.textContent = bigToString(value, 16).toUpperCase();
+    renderWithSubscripts(hex, 16);
+  }
+  if (except !== cust){
+    cust.textContent = bigToString(value, b).toUpperCase();
+    renderWithSubscripts(cust, b);
+  }
+
+  [dec,bin,hex,cust].forEach(function(f){
+    if (f !== except){
+      markCommitted(f, value);
+      isRendering[f.id] = false;
+    }
+  });
+}
+```
+
+---
+
+## Что это исправляет:
+
+1. ✅ Поля теперь нормальной ширины, custom base поле расположено правильно
+2. ✅ Subscripts показывают правильное основание для каждого числа (FF₁₆ в Hex, 1010₂ в Binary)
+3. ✅ Нет утечки памяти, курсор не прыгает, сайт не зависает
+
+## Как применить:
+
+1. Откройте index.html из ветки t_v0.3
+2. Примените изменения из этого патча вручную
+3. Закоммитьте в новую ветку (например, t_v0.3-fix)
+4. Создайте PR: t_v0.3-fix → t_v0.3

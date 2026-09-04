@@ -98,6 +98,27 @@
     line-height:0;
   }
 
+  /* Custom base input (число) */
+  .conv-custom{
+    display:flex;
+    gap:8px;
+    align-items:stretch; /* чтобы оба поля были одной высоты */
+  }
+
+  .conv-custom #base{
+    width:80px;
+    padding:14px;
+    font-size:18px;
+    border:1px solid #ddd;
+    border-radius:8px;
+    background:#fff;
+    text-align:center;
+  }
+
+  .conv-custom .input-wrapper{
+    flex:1; /* занять оставшееся пространство */
+  }
+
   /* Убираем старые стили для input */
   /* .conv-field input { ... } — удалить или закомментировать */
 /*
@@ -596,6 +617,8 @@
     var historyScroll = document.getElementById('historyScroll');
     var clearBtn      = document.getElementById('clearHistory');
 
+    var isRendering = {};
+
     var STORAGE_KEY = 'simplehex_history';
     var MAX_STORED = 50;
 
@@ -720,13 +743,12 @@
         return text;
       }
 
-      var tokens = tokenizeExpression(text);
+      var tokens = tokenizeExpression(text, baseRadix); // <-- передать baseRadix
       var html = '';
 
       tokens.forEach(function(token){
         if (token.type === 'number'){
           var subscript = toSubscript(token.base);
-          // Экранируем текст
           var escaped = escapeHtml(token.text);
           html += escaped + '<sub>' + subscript + '</sub>';
         } else {
@@ -740,7 +762,7 @@
     }
 
     // Токенизация выражения (определение чисел и их оснований)
-    function tokenizeExpression(text){
+    function tokenizeExpression(text, defaultBase){
       var tokens = [];
       var i = 0;
 
@@ -770,29 +792,20 @@
           i += 2;
           while (i < text.length && /[01]/.test(text[i])) i++;
         }
-        // Голое число (hex, decimal, или смешанное)
+        // Голое число — используем основание поля
         else {
-          // Читаем все alphanumeric
-          while (i < text.length && /[0-9a-zA-Z]/.test(text[i])) i++;
-          var numText = text.slice(numStart, i);
-
-          // Попробуем определить основание по содержимому
-          if (/^[01]+$/.test(numText)){
-            detectedBase = 2; // может быть binary
-          } else if (/^[0-9a-fA-F]+$/.test(numText)){
-            // Может быть hex или decimal
-            if (/[a-fA-F]/.test(numText)){
-              detectedBase = 16; // точно hex
-            } else {
-              detectedBase = 10; // скорее всего decimal
-            }
-          } else {
-            detectedBase = 10; // по умолчанию
+          detectedBase = defaultBase;
+          // Читаем все символы, валидные для этого основания
+          var validChars = DIGITS.slice(0, defaultBase);
+          while (i < text.length && validChars.indexOf(text[i].toLowerCase()) !== -1){
+            i++;
           }
         }
 
         var numText = text.slice(numStart, i);
-        tokens.push({type:'number', text:numText, base:detectedBase});
+        if (numText.length > 0){
+          tokens.push({type:'number', text:numText, base:detectedBase});
+        }
       }
 
       return tokens;
@@ -887,6 +900,10 @@
     function updateAll(value, except){
       var b = getBase();
       
+      [dec,bin,hex,cust].forEach(function(f){ 
+        if (f !== except) isRendering[f.id] = true; 
+      });
+
       if (except !== dec){
         dec.textContent = bigToString(value, 10);
         renderWithSubscripts(dec, 10);
@@ -905,7 +922,10 @@
       }
 
       [dec,bin,hex,cust].forEach(function(f){
-        if (f !== except) markCommitted(f, value);
+        if (f !== except){
+          markCommitted(f, value);
+          isRendering[f.id] = false;
+        }
       });
     }
 
@@ -1045,13 +1065,22 @@
       [dec,bin,hex,cust].forEach(function(f){ markCommitted(f, value); });
     }
 
+    var renderTimers = {};
+
     function handle(el){
       return function(){
-        clearErrors();
+        if (isRendering[el.id]) return;
         
-        // Рендерим с subscripts и получаем чистый текст
-        var baseRadix = radixOf(el);
-        var raw = renderWithSubscripts(el, baseRadix);
+        clearErrors();
+        var raw = getPlainText(el);
+
+        if (renderTimers[el.id]) clearTimeout(renderTimers[el.id]);
+
+        renderTimers[el.id] = setTimeout(function(){
+          isRendering[el.id] = true;
+          renderWithSubscripts(el, radixOf(el));
+          isRendering[el.id] = false;
+        }, 300);
 
         if (raw.trim() === ''){
           [dec,bin,hex,cust].forEach(function(f){ 
@@ -1061,7 +1090,7 @@
           return;
         }
 
-        var r = baseRadix;
+        var r = radixOf(el);
         if (el === cust && (r < 2 || r > 36)){ 
           el.classList.add('error'); 
           return; 
